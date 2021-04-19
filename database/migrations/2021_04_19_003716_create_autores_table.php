@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+class CreateAutoresTable extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('autores', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('book_id');
+            $table->text('author');
+            $table->timestamps();
+            $table->foreign('book_id')->references('id')->on('libros');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('autores');
+    }
+}

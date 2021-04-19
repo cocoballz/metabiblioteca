@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
-});
+// route crear nuevo libro
+Route::post('book/create','LibrosController@store')->name('create');
+Route::post('book/delete','LibrosController@destroy')->name('delete');
+Route::get('book/{isbn}','LibrosController@detalis')->name('details');
+Route::get('book/','LibrosController@show')->name('show');
