@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\book;
+use App\Http\Resources\BookCollection;
 use App\Models\Autores;
 use App\Models\Libros;
 use Illuminate\Http\Request;
@@ -47,7 +49,7 @@ class LibrosController extends Controller
                     //Verificar si ya existe un libro con el mismo isbn en la base de datos
                     $validador = Libros::where('isbn', $ISBN)->get();
 
-                    if ($validador) {
+                    if (count($validador) != 0) {
                         return json_encode([
                             'status' => 0,
                             'message' => 'Error al guardar el libro. ya se encuentra registrado',
@@ -89,26 +91,23 @@ class LibrosController extends Controller
         if (! isset($request['isbn'])) {
             return json_encode(['status' => 0, 'message' => 'El Codigo ISBN es obligatorio']);
         } else {
+            //--Validar si el codigo caracteres datos no numericos--
             if (! ctype_digit($request['isbn'])) {
                 return json_encode(['status' => 0, 'message' => 'El Codigo ISBN debe ser numerico.']);
-            }else{
+            } else {
                 $id_book = Libros::where('isbn', $request['isbn'])->get();
-
-                if($id_book){
-                    //tocaria buscar los ids de los autores y luego si eliminar el principal 
-                    //$autores= Autores::where('book_id',$id_book[0]['id'])->get();
-                    //$autores->tasks()->delete();
-                    //$autores->delete();
-                    //Autores::destroy()->where('book_id',$id_book[0]['id']);
+                if (count($id_book) > 0) {
+                    $author = Autores::where('book_id', $id_book[0]['id']);
+                    $author->delete();
                     Libros::destroy($id_book[0]['id']);
 
                     return json_encode(['status' => 1, 'message' => 'Exito al eliminar el libro.']);
-                }else{
-                    return json_encode(['status' => 0, 'message' => 'El Codigo ISBN No a sido encontrado en la base de datos.']);
+                } else {
+                    return json_encode([
+                        'status' => 0,
+                        'message' => 'El Codigo ISBN No a sido encontrado en la base de datos.',
+                    ]);
                 }
-
-
-
             }
         }
     }
@@ -119,19 +118,63 @@ class LibrosController extends Controller
      */
     public function show()
     {
-        $books = Libros::with('autores')->get();
+        $books = Libros::paginate(2);
 
-        return $books;
+        return new BookCollection($books);
     }
 
     /**
      * Funcion que permite ver en detalles un  libro en la BD
      *
      */
-    public function detalis()
+    public function detalis($isbn = '')
     {
-        $books = Libros::with('autores')->get();
 
-        return $books;
+        //--Validar si el codigo caracteres datos no numericos--
+        if (! ctype_digit($isbn)) {
+            return json_encode(['status' => 0, 'message' => 'El Codigo ISBN debe ser numerico.']);
+        } else {
+
+            $books = Libros::with('autores')->where('isbn', $isbn)->get();
+
+            //return $books;
+            if (count($books) > 0) {
+                $var = '
+                    <Libros>
+                        <Libro>
+                            <Titulo>'.$books[0]['title'].'</Titulo>
+                            <Isbn>'.$books[0]['isbn'].'</Isbn>
+                            <Autores>
+                ';
+                foreach ($books[0]['autores'] as $Autor) {
+                    $var = $var.'<autor>'.$Autor->author.'</autor>';
+                }
+                $var = $var.'
+                            </Autores>
+                        </libro>
+                    </Libros>
+                ';
+
+                $xml = <<<XML
+            <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+            {$var}
+            XML;
+            } else {
+                $xml = <<<XML
+            <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+            <Libros>
+                Error Libro no encontrado
+            </Libros>
+            XML;
+            }
+
+            //print_r($data);
+
+            return response()->xml($xml);
+
+            return response()->xml($data, 200, [], 'libros', 'utf-8');
+
+            return \Facade\FlareClient\Http\Response::xml($books);
+        }
     }
 }
